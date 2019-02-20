@@ -1,0 +1,39 @@
+From 70805eef8076e554f8bd8f29cd296ecb1c1878e4 Mon Sep 17 00:00:00 2001
+From: Kevin McCarthy <kevin@8t8.us>
+Date: Fri, 29 Mar 2019 15:21:02 -0700
+Subject: [PATCH] Change IMAP to try oauthbearer first.
+
+$imap_authenticators says if it is unset, the authenticators from
+most-secure to secure will be tried.  It makes sense for oauthbearer
+to come first, like with POP.
+
+To make this change backwards compatible, it depends on the previous
+commit, which changed imap_auth_oauth() to return IMAP_AUTH_UNAVAIL if
+oauth is not configured or explictily requested.
+---
+ imap/auth.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/imap/auth.c b/imap/auth.c
+index 1b26077a..d4755ae7 100644
+--- a/imap/auth.c
++++ b/imap/auth.c
+@@ -29,6 +29,7 @@
+ #include "auth.h"
+ 
+ static const imap_auth_t imap_authenticators[] = {
++  { imap_auth_oauth, "oauthbearer" },
+ #ifdef USE_SASL
+   { imap_auth_sasl, NULL },
+ #else
+@@ -42,7 +43,6 @@ static const imap_auth_t imap_authenticators[] = {
+   { imap_auth_cram_md5, "cram-md5" },
+ #endif
+   { imap_auth_login, "login" },
+-  { imap_auth_oauth, "oauthbearer" },
+ 
+   { NULL, NULL }
+ };
+-- 
+2.20.1
+

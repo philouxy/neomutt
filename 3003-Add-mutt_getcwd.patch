@@ -1,0 +1,53 @@
+From 3fab5d58d41c7cf88d35bf06b0d5f2b5bd199113 Mon Sep 17 00:00:00 2001
+From: Kevin McCarthy <kevin@8t8.us>
+Date: Mon, 11 Mar 2019 17:38:58 +0800
+Subject: [PATCH] Add mutt_getcwd().
+
+---
+ muttlib.c | 17 +++++++++++++++++
+ protos.h  |  1 +
+ 2 files changed, 18 insertions(+)
+
+diff --git a/muttlib.c b/muttlib.c
+index 72ee611f..1e64e000 100644
+--- a/muttlib.c
++++ b/muttlib.c
+@@ -1173,6 +1173,23 @@ void mutt_safe_path (char *s, size_t l, ADDRESS *a)
+       *p = '_';
+ }
+ 
++void mutt_getcwd (BUFFER *cwd)
++{
++  char *retval;
++
++  mutt_buffer_increase_size (cwd, _POSIX_PATH_MAX);
++  retval = getcwd (cwd->data, cwd->dsize);
++  while (!retval && errno == ERANGE)
++  {
++    mutt_buffer_increase_size (cwd, cwd->dsize + STRING);
++    retval = getcwd (cwd->data, cwd->dsize);
++  }
++  if (retval)
++    mutt_buffer_fix_dptr (cwd);
++  else
++    mutt_buffer_clear (cwd);
++}
++
+ /* Note this function uses a fixed size buffer of LONG_STRING and so
+  * should only be used for visual modifications, such as disp_subj. */
+ char *mutt_apply_replace (char *dbuf, size_t dlen, char *sbuf, REPLACE_LIST *rlist)
+diff --git a/protos.h b/protos.h
+index 5601012f..08965f3c 100644
+--- a/protos.h
++++ b/protos.h
+@@ -223,6 +223,7 @@ void mutt_free_header (HEADER **);
+ void mutt_free_parameter (PARAMETER **);
+ void mutt_free_regexp (REGEXP **);
+ void mutt_generate_header (char *, size_t, HEADER *, int);
++void mutt_getcwd (BUFFER *);
+ void mutt_help (int);
+ const char *mutt_idxfmt_hook (const char *, CONTEXT *, HEADER *);
+ void mutt_draw_tree (CONTEXT *);
+-- 
+2.20.1
+

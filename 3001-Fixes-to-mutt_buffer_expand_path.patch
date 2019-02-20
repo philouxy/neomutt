@@ -1,0 +1,88 @@
+From 48cdde4718d1a8e53f45c2539785396cc0fc340e Mon Sep 17 00:00:00 2001
+From: Kevin McCarthy <kevin@8t8.us>
+Date: Mon, 11 Mar 2019 17:04:28 +0800
+Subject: [PATCH] Fixes to mutt_buffer_expand_path().
+
+Create _mutt_buffer_expand_path() with the rx argument.
+
+Use mutt_b2s() instead of derefencing buffer->data in
+mutt_buffer_expand_path().  The p->data uses were safe, but the
+src->data was potentially not.
+---
+ muttlib.c | 17 +++++++++++------
+ protos.h  |  3 ++-
+ 2 files changed, 13 insertions(+), 7 deletions(-)
+
+diff --git a/muttlib.c b/muttlib.c
+index ee549788..72ee611f 100644
+--- a/muttlib.c
++++ b/muttlib.c
+@@ -439,8 +439,8 @@ char *_mutt_expand_path (char *s, size_t slen, int rx)
+ 
+   s_buf = mutt_buffer_pool_get ();
+ 
+-  mutt_buffer_addstr (s_buf, s);
+-  mutt_buffer_expand_path (s_buf, rx);
++  mutt_buffer_addstr (s_buf, NONULL (s));
++  _mutt_buffer_expand_path (s_buf, rx);
+   strfcpy (s, mutt_b2s (s_buf), slen);
+ 
+   mutt_buffer_pool_release (&s_buf);
+@@ -448,7 +448,12 @@ char *_mutt_expand_path (char *s, size_t slen, int rx)
+   return s;
+ }
+ 
+-void mutt_buffer_expand_path (BUFFER *src, int rx)
++void mutt_buffer_expand_path (BUFFER *src)
++{
++  _mutt_buffer_expand_path (src, 0);
++}
++
++void _mutt_buffer_expand_path (BUFFER *src, int rx)
+ {
+   BUFFER *p, *q, *tmp;
+   const char *s, *tail = "";
+@@ -462,7 +467,7 @@ void mutt_buffer_expand_path (BUFFER *src, int rx)
+   do
+   {
+     recurse = 0;
+-    s = src->data;
++    s = mutt_b2s (src);
+ 
+     switch (*s)
+     {
+@@ -543,7 +548,7 @@ void mutt_buffer_expand_path (BUFFER *src, int rx)
+ 	  h->env->from = h->env->to = NULL;
+ 	  mutt_free_header (&h);
+ 	  /* Avoid infinite recursion if the resulting folder starts with '@' */
+-	  if (*(p->data) != '@')
++	  if (*(mutt_b2s (p)) != '@')
+ 	    recurse = 1;
+ 
+ 	  tail = "";
+@@ -601,7 +606,7 @@ void mutt_buffer_expand_path (BUFFER *src, int rx)
+       }
+     }
+ 
+-    if (rx && *(p->data) && !recurse)
++    if (rx && *(mutt_b2s (p)) && !recurse)
+     {
+       mutt_rx_sanitize_string (q, mutt_b2s (p));
+       mutt_buffer_printf (tmp, "%s%s", mutt_b2s (q), tail);
+diff --git a/protos.h b/protos.h
+index 0ea70c80..5601012f 100644
+--- a/protos.h
++++ b/protos.h
+@@ -138,7 +138,8 @@ const char *mutt_attach_fmt (
+ 
+ char *mutt_charset_hook (const char *);
+ char *mutt_iconv_hook (const char *);
+-void mutt_buffer_expand_path (BUFFER *, int);
++void mutt_buffer_expand_path (BUFFER *);
++void _mutt_buffer_expand_path (BUFFER *, int);
+ char *mutt_expand_path (char *, size_t);
+ char *_mutt_expand_path (char *, size_t, int);
+ char *mutt_find_hook (int, const char *);
+-- 
+2.20.1
+

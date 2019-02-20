@@ -1,0 +1,61 @@
+From 728f1fa8f251f74f4934f6a6401b7c4b9984e712 Mon Sep 17 00:00:00 2001
+From: Kevin McCarthy <kevin@8t8.us>
+Date: Sun, 24 Mar 2019 09:45:31 +0800
+Subject: [PATCH] Fail oauth quietly if it was not configured.
+
+Don't report an error unless they explicitly put "oauthbearer" in the
+authenticator list or configured the oauth_refresh_command.
+---
+ imap/auth_oauth.c | 4 ++++
+ pop_auth.c        | 8 ++++++--
+ 2 files changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/imap/auth_oauth.c b/imap/auth_oauth.c
+index 14e843a5..c847d4c0 100644
+--- a/imap/auth_oauth.c
++++ b/imap/auth_oauth.c
+@@ -41,6 +41,10 @@ imap_auth_res_t imap_auth_oauth (IMAP_DATA* idata, const char* method)
+       !idata->conn->ssf)
+     return IMAP_AUTH_UNAVAIL;
+ 
++  /* If they did not explicitly request or configure oauth then fail quietly */
++  if (!(method || (ImapOauthRefreshCmd && *ImapOauthRefreshCmd)))
++      return IMAP_AUTH_UNAVAIL;
++
+   mutt_message _("Authenticating (OAUTHBEARER)...");
+ 
+   /* We get the access token from the imap_oauth_refresh_command */
+diff --git a/pop_auth.c b/pop_auth.c
+index 2d50fed5..883f6791 100644
+--- a/pop_auth.c
++++ b/pop_auth.c
+@@ -327,6 +327,10 @@ static pop_auth_res_t pop_auth_oauth (POP_DATA *pop_data, const char *method)
+   size_t auth_cmd_len;
+   int ret, len;
+ 
++  /* If they did not explicitly request or configure oauth then fail quietly */
++  if (!(method || (PopOauthRefreshCmd && *PopOauthRefreshCmd)))
++      return POP_A_UNAVAIL;
++
+   mutt_message _("Authenticating (OAUTHBEARER)...");
+ 
+   oauthbearer = mutt_account_getoauthbearer (&pop_data->conn->account);
+@@ -459,13 +463,13 @@ int pop_authenticate (POP_DATA* pop_data)
+ 
+     while (authenticator->authenticate)
+     {
+-      ret = authenticator->authenticate (pop_data, authenticator->method);
++      ret = authenticator->authenticate (pop_data, NULL);
+       if (ret == POP_A_SOCKET)
+ 	switch (pop_connect (pop_data))
+ 	{
+ 	  case 0:
+ 	  {
+-	    ret = authenticator->authenticate (pop_data, authenticator->method);
++	    ret = authenticator->authenticate (pop_data, NULL);
+ 	    break;
+ 	  }
+ 	  case -2:
+-- 
+2.20.1
+

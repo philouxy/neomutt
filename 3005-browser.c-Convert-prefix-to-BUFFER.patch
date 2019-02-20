@@ -1,0 +1,131 @@
+From e0622c4d8f76b13230d83769c32f21461d68d479 Mon Sep 17 00:00:00 2001
+From: Kevin McCarthy <kevin@8t8.us>
+Date: Tue, 12 Mar 2019 12:46:56 +0800
+Subject: [PATCH] browser.c: Convert prefix to BUFFER.
+
+---
+ browser.c | 30 ++++++++++++++++--------------
+ 1 file changed, 16 insertions(+), 14 deletions(-)
+
+diff --git a/browser.c b/browser.c
+index 2a8a83be..07528d7f 100644
+--- a/browser.c
++++ b/browser.c
+@@ -653,7 +653,7 @@ static int file_tag (MUTTMENU *menu, int n, int m)
+ void _mutt_select_file (char *f, size_t flen, int flags, char ***files, int *numfiles)
+ {
+   char buf[_POSIX_PATH_MAX];
+-  char prefix[_POSIX_PATH_MAX] = "";
++  BUFFER *prefix = NULL;
+   char helpstr[LONG_STRING];
+   char title[STRING];
+   struct browser_state state;
+@@ -668,6 +668,10 @@ void _mutt_select_file (char *f, size_t flen, int flags, char ***files, int *num
+ 
+   buffy = buffy && folder;
+ 
++  OldLastDir = mutt_buffer_pool_get ();
++  tmp        = mutt_buffer_pool_get ();
++  prefix     = mutt_buffer_pool_get ();
++
+   memset (&state, 0, sizeof (struct browser_state));
+ 
+   if (!LastDir)
+@@ -716,9 +720,9 @@ void _mutt_select_file (char *f, size_t flen, int flags, char ***files, int *num
+       }
+ 
+       if (i <= 0 && f[0] != '/')
+-        strfcpy (prefix, f, sizeof (prefix));
++        mutt_buffer_strcpy (prefix, f);
+       else
+-        strfcpy (prefix, f + i + 1, sizeof (prefix));
++        mutt_buffer_strcpy (prefix, f + i + 1);
+       killPrefix = 1;
+ #ifdef USE_IMAP
+     }
+@@ -762,7 +766,7 @@ void _mutt_select_file (char *f, size_t flen, int flags, char ***files, int *num
+ #ifdef USE_IMAP
+     if (!state.imap_browse)
+ #endif
+-      if (examine_directory (NULL, &state, mutt_b2s (LastDir), prefix) == -1)
++      if (examine_directory (NULL, &state, mutt_b2s (LastDir), mutt_b2s (prefix)) == -1)
+         goto bail;
+ 
+   menu = mutt_new_menu (MENU_FOLDER);
+@@ -779,9 +783,6 @@ void _mutt_select_file (char *f, size_t flen, int flags, char ***files, int *num
+ 
+   init_menu (&state, menu, title, sizeof (title), buffy);
+ 
+-  OldLastDir = mutt_buffer_pool_get ();
+-  tmp = mutt_buffer_pool_get ();
+-
+   FOREVER
+   {
+     switch (op = mutt_menuLoop (menu))
+@@ -887,7 +888,7 @@ void _mutt_select_file (char *f, size_t flen, int flags, char ***files, int *num
+ 	    destroy_state (&state);
+ 	    if (killPrefix)
+ 	    {
+-	      prefix[0] = 0;
++	      mutt_buffer_clear (prefix);
+ 	      killPrefix = 0;
+ 	    }
+ 	    buffy = 0;
+@@ -902,11 +903,11 @@ void _mutt_select_file (char *f, size_t flen, int flags, char ***files, int *num
+ 	    }
+ 	    else
+ #endif
+-              if (examine_directory (menu, &state, mutt_b2s (LastDir), prefix) == -1)
++              if (examine_directory (menu, &state, mutt_b2s (LastDir), mutt_b2s (prefix)) == -1)
+               {
+                 /* try to restore the old values */
+                 mutt_buffer_strcpy (LastDir, mutt_b2s (OldLastDir));
+-                if (examine_directory (menu, &state, mutt_b2s (LastDir), prefix) == -1)
++                if (examine_directory (menu, &state, mutt_b2s (LastDir), mutt_b2s (prefix)) == -1)
+                 {
+                   mutt_buffer_strcpy (LastDir, NONULL(Homedir));
+                   goto bail;
+@@ -1134,12 +1135,12 @@ void _mutt_select_file (char *f, size_t flen, int flags, char ***files, int *num
+ 	      if (S_ISDIR (st.st_mode))
+ 	      {
+ 		destroy_state (&state);
+-		if (examine_directory (menu, &state, buf, prefix) == 0)
++		if (examine_directory (menu, &state, buf, mutt_b2s (prefix)) == 0)
+ 		  mutt_buffer_strcpy (LastDir, buf);
+ 		else
+ 		{
+ 		  mutt_error _("Error scanning directory.");
+-		  if (examine_directory (menu, &state, mutt_b2s (LastDir), prefix) == -1)
++		  if (examine_directory (menu, &state, mutt_b2s (LastDir), mutt_b2s (prefix)) == -1)
+ 		  {
+ 		    goto bail;
+ 		  }
+@@ -1277,7 +1278,7 @@ void _mutt_select_file (char *f, size_t flen, int flags, char ***files, int *num
+ 
+       case OP_CHECK_NEW:
+ 	destroy_state (&state);
+-	prefix[0] = 0;
++	mutt_buffer_clear (prefix);
+ 	killPrefix = 0;
+ 
+ 	if (buffy)
+@@ -1295,7 +1296,7 @@ void _mutt_select_file (char *f, size_t flen, int flags, char ***files, int *num
+ 	  menu->data = state.entry;
+ 	}
+ #endif
+-	else if (examine_directory (menu, &state, mutt_b2s (LastDir), prefix) == -1)
++	else if (examine_directory (menu, &state, mutt_b2s (LastDir), mutt_b2s (prefix)) == -1)
+ 	  goto bail;
+ 	init_menu (&state, menu, title, sizeof (title), buffy);
+ 	break;
+@@ -1360,6 +1361,7 @@ void _mutt_select_file (char *f, size_t flen, int flags, char ***files, int *num
+ bail:
+   mutt_buffer_pool_release (&OldLastDir);
+   mutt_buffer_pool_release (&tmp);
++  mutt_buffer_pool_release (&prefix);
+ 
+   if (menu)
+   {
+-- 
+2.20.1
+

@@ -1,0 +1,73 @@
+From 912c06d61a06e1210c7f61db22876ff0c7a1ee75 Mon Sep 17 00:00:00 2001
+From: Kevin McCarthy <kevin@8t8.us>
+Date: Thu, 21 Mar 2019 18:35:34 +0800
+Subject: [PATCH] Add documentation on thread tree characters and config vars.
+
+---
+ doc/manual.xml.head | 50 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 50 insertions(+)
+
+diff --git a/doc/manual.xml.head b/doc/manual.xml.head
+index 9c9fda2d..76778f42 100644
+--- a/doc/manual.xml.head
++++ b/doc/manual.xml.head
+@@ -929,6 +929,56 @@ and <emphasis>pager</emphasis> modes as shown in
+ </tgroup>
+ </table>
+ 
++<para>
++In the <emphasis>index</emphasis>, the subject of threaded children
++messages will be prepended with thread tree characters.  By default,
++the subject itself will not be duplicated unless <link
++linkend="hide-thread-subject">$hide_thread_subject</link> is unset.
++Special characters will be added to the thread tree as detailed in
++<xref linkend="tab-thread-chars"/>.
++</para>
++
++<table id="tab-thread-chars">
++  <title>Special Thread Characters</title>
++  <tgroup cols="3">
++    <thead>
++      <row>
++        <entry>Character</entry>
++        <entry>Description</entry>
++        <entry>Notes</entry>
++      </row>
++    </thead>
++    <tbody>
++      <row>
++        <entry>&amp;</entry>
++        <entry>hidden message</entry>
++        <entry>see <link linkend="hide-limited">$hide_limited</link> and
++        <link linkend="hide-top-limited">$hide_top_limited</link></entry>
++      </row>
++      <row>
++        <entry>?</entry>
++        <entry>missing message</entry>
++        <entry>see <link linkend="hide-missing">$hide_missing</link> and
++        <link linkend="hide-top-missing">$hide_top_missing</link></entry>
++      </row>
++      <row>
++        <entry>*</entry>
++        <entry>psuedo thread</entry>
++        <entry>see <link linkend="strict-threads">$strict_threads</link>;
++        not displayed when
++        <link linkend="narrow-tree">$narrow_tree</link> is set</entry>
++      </row>
++      <row>
++        <entry>=</entry>
++        <entry>duplicate thread</entry>
++        <entry>see <link linkend="duplicate-threads">$duplicate_threads</link>;
++        not displayed when
++        <link linkend="narrow-tree">$narrow_tree</link> is set</entry>
++      </row>
++    </tbody>
++  </tgroup>
++</table>
++
+ <para>
+ Collapsing a thread displays only the first message in the thread and
+ hides the others. This is useful when threads contain so many messages
+-- 
+2.20.1
+
